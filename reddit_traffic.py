@@ -1,5 +1,4 @@
 import os
-from flask import Flask, render_template_string, request
 import praw
 
 # Set your Reddit API credentials here or use environment variables
@@ -14,51 +13,6 @@ TRAFFIC_KEYWORDS = [
 AREA_KEYWORDS = [
     'outer ring road', 'orr', 'marathahalli', 'whitefield', 'sarjapur', 'bellandur', 'mahadevapura', 'kadubeesanahalli', 'kr puram', 'kundalahalli', 'brookefield', 'itpl', 'varthur', 'hebbal', 'tin factory'
 ]
-
-app = Flask(__name__)
-
-HTML_TEMPLATE = '''
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Bangalore Traffic from Reddit</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 0; }
-    .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px 0 rgba(60,60,60,0.08); padding: 32px; }
-    h2 { color: #007aff; }
-    .post { margin-bottom: 22px; padding-bottom: 12px; border-bottom: 1px solid #e5e9f2; }
-    .post:last-child { border-bottom: none; }
-    .title { font-size: 1.1rem; font-weight: 600; color: #222; }
-    .meta { color: #888; font-size: 0.95rem; }
-    .subreddit { color: #007aff; font-size: 0.95rem; margin-left: 8px; }
-    .body { color: #333; font-size: 1rem; margin-top: 6px; margin-bottom: 4px; }
-    mark { background: #ffe066; color: #222; border-radius: 3px; padding: 0 2px; }
-    a { color: #007aff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>🚦 Bangalore Traffic Updates (Reddit)</h2>
-    {% if posts %}
-      {% for post in posts %}
-        <div class="post">
-          <div class="title"><a href="{{ post['url'] }}" target="_blank">{{ post['title']|safe }}</a><span class="subreddit">[r/{{ post['subreddit'] }}]</span></div>
-          <div class="meta">Posted by {{ post['author'] }} | {{ post['created'] }}</div>
-          {% if post['body'] %}
-            <div class="body">{{ post['body']|safe }}</div>
-          {% endif %}
-        </div>
-      {% endfor %}
-    {% else %}
-      <p>No recent traffic-related posts found.</p>
-    {% endif %}
-  </div>
-</body>
-</html>
-'''
 
 def fetch_traffic_posts(subreddit_names=None, limit=30):
     if subreddit_names is None:
@@ -115,12 +69,6 @@ def fetch_traffic_posts(subreddit_names=None, limit=30):
     posts.sort(key=lambda x: x['created'], reverse=True)
     return posts
 
-@app.route('/')
-def index():
-    posts = fetch_traffic_posts()
-    return render_template_string(HTML_TEMPLATE, posts=posts)
-
+# Add a note for Streamlit users:
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    print("This script is intended to be used with Streamlit. Please run: streamlit run reddit_traffic.py")
