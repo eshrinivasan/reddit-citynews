@@ -31,33 +31,11 @@ def fetch_traffic_posts(subreddit_names=None, limit=30):
                 title_lower = submission.title.lower()
                 # Show posts that mention either a traffic keyword or an area keyword
                 if any(keyword in title_lower for keyword in TRAFFIC_KEYWORDS + AREA_KEYWORDS):
-                    highlighted_title = submission.title
-                    for keyword in TRAFFIC_KEYWORDS + AREA_KEYWORDS:
-                        if keyword in highlighted_title.lower():
-                            highlighted_title = highlighted_title.replace(
-                                keyword,
-                                f'<mark>{keyword}</mark>'
-                            )
-                            highlighted_title = highlighted_title.replace(
-                                keyword.capitalize(),
-                                f'<mark>{keyword.capitalize()}</mark>'
-                            )
-                    # Fetch and highlight keywords in the post body (selftext)
+                    # Remove all keyword highlighting
                     body = submission.selftext or ''
-                    highlighted_body = body
-                    for keyword in TRAFFIC_KEYWORDS + AREA_KEYWORDS:
-                        if keyword in highlighted_body.lower():
-                            highlighted_body = highlighted_body.replace(
-                                keyword,
-                                f'<mark>{keyword}</mark>'
-                            )
-                            highlighted_body = highlighted_body.replace(
-                                keyword.capitalize(),
-                                f'<mark>{keyword.capitalize()}</mark>'
-                            )
                     posts.append({
-                        'title': highlighted_title,
-                        'body': highlighted_body[:500] + ('...' if len(highlighted_body) > 500 else ''),
+                        'title': submission.title,
+                        'body': body[:500] + ('...' if len(body) > 500 else ''),
                         'url': submission.url if submission.url.startswith('http') else f"https://reddit.com{submission.permalink}",
                         'author': submission.author.name if submission.author else 'unknown',
                         'created': datetime.utcfromtimestamp(submission.created_utc).strftime('%Y-%m-%d %H:%M'),
