@@ -41,11 +41,13 @@ with twitter_tab:
         'outer ring road', 'orr', 'marathahalli', 'whitefield', 'sarjapur', 'bellandur', 'mahadevapura', 'kadubeesanahalli', 'kr puram', 'kundalahalli', 'brookefield', 'itpl', 'varthur', 'hebbal', 'tin factory', 'bangalore'
     ]
     def fetch_twitter_traffic(query="bangalore traffic", max_results=20):
+        import time
         if not TWITTER_BEARER_TOKEN or TWITTER_BEARER_TOKEN.strip() == "":
             st.warning("Twitter Bearer Token is not set or is empty. Please check your environment variable TWITTER_BEARER_TOKEN.")
-            return []
-        client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True)
+            return [], None
+        client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=False)
         tweets = []
+        rate_limit_message = None
         try:
             response = client.search_recent_tweets(query=query, max_results=max_results, tweet_fields=["created_at", "author_id", "text"])
             for tweet in response.data or []:
@@ -54,16 +56,35 @@ with twitter_tab:
                     tweets.append({
                         'text': tweet.text,
                         'created': tweet.created_at.strftime('%Y-%m-%d %H:%M'),
-                        'author_id': tweet.author_id
+                        'author_id': tweet.author_id,
+                        'id': tweet.id
                     })
         except Exception as e:
-            st.error(f"Error fetching tweets: {e}")
-        return tweets
-    tweets = fetch_twitter_traffic()
+            # Check for rate limit error
+            import traceback
+            error_str = str(e)
+            if '429' in error_str or 'rate limit' in error_str.lower():
+                # Try to extract reset time if available
+                reset_time = None
+                if hasattr(e, 'response') and e.response is not None:
+                    reset_time = int(e.response.headers.get('x-rate-limit-reset', 0))
+                import time as t
+                sleep_seconds = max(0, (reset_time - int(t.time())) if reset_time else 900)
+                rate_limit_message = f"Twitter API rate limit exceeded. Please wait {sleep_seconds} seconds before trying again."
+            else:
+                st.error(f"Error fetching tweets: {e}")
+        return tweets, rate_limit_message
+    tweets, rate_limit_message = fetch_twitter_traffic()
+    if rate_limit_message:
+        st.error(rate_limit_message)
     if tweets:
         for tweet in tweets:
+            tweet_url = f"https://twitter.com/i/web/status/{tweet.get('id', '')}" if tweet.get('id') else ""
+            user_url = f"https://twitter.com/intent/user?user_id={tweet['author_id']}"
             st.markdown(f"**{tweet['text']}**")
-            st.markdown(f"*Posted by user {tweet['author_id']} at {tweet['created']}*")
+            st.markdown(f"*Posted by [user {tweet['author_id']}]({user_url}) at {tweet['created']}*", unsafe_allow_html=True)
+            if tweet_url:
+                st.markdown(f"[View Tweet]({tweet_url})", unsafe_allow_html=True)
             st.markdown('<hr style="margin:8px 0; border:0; border-top:1px solid #eee;" />', unsafe_allow_html=True)
-    else:
+    elif not rate_limit_message:
         st.write("No recent traffic-related tweets found or Twitter API not configured.")
